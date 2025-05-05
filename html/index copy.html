@@ -1,0 +1,293 @@
+\文件\Code\LION\replica_website\index.html -->
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>雄獅旅遊 - 行程推薦</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <header class="header_v2lion pge_conl" data-template-kind="header" data-pc-fix="true" data-pc-fix-start="false" data-header-title data-simple-pcheader="false" data-mobile-menu="false" data-home-icon="false" data-header-visibility data-toggle-search="true" data-toggle-info165="true" data-mobile-fix="true" data-mobile-fix-start="false" data-mobile-top-transparent="false" data-mobile-bg-white="false" data-mobile-changeColor-height data-mobile-langcurrency-top="false">
+        <div class="header_v2lion_inner">
+            <div class="header_top">
+                <div class="logo">
+                    <a href="https://www.liontravel.com/category/zh-tw/index">
+                        <img src="./img/favicon.jpg" alt="雄獅旅遊">
+                    </a>
+                </div>
+                <nav>
+                    <ul>
+                        <li><a href="#">國外團體</a></li>
+                        <li><a href="#">機票</a></li>
+                        <li><a href="#">訂房</a></li>
+                        <li><a href="#">自由行</a></li>
+                        <li><a href="#">票券當地遊</a></li>
+                    </ul>
+                </nav>
+            </div>
+            <div class="header_bottom">
+                <h1></h1>
+                <p></p>
+            </div>
+        </div>
+    </header>
+
+    <div class="search-container">
+        <div class="search-box">
+            <input type="text" placeholder="搜尋行程...">
+            <button>搜尋</button>
+        </div>
+    </div>
+
+    <div class="filter-bar">
+        <div class="filter-options">
+            <label for="destination">目的地：</label>
+            <select id="destination">
+                <option value="">不限</option>
+                <option value="日本">日本</option>
+                <option value="韓國">韓國</option>
+                <option value="泰國">泰國</option>
+                <option value="歐洲">歐洲</option>
+            </select>
+        </div>
+        <div class="filter-options">
+            <label for="price-range">價格範圍：</label>
+            <select id="price-range">
+                <option value="">不限</option>
+                <option value="0-50000">NT$ 0 - 50,000</option>
+                <option value="50000-100000">NT$ 50,000 - 100,000</option>
+                <option value="100000-">NT$ 100,000 以上</option>
+            </select>
+        </div>
+        <div class="sort-options">
+            <label for="sort-by">排序方式：</label>
+            <select id="sort-by">
+                <option value="default">預設</option>
+                <option value="price-asc">價格（由低到高）</option>
+                <option value="price-desc">價格（由高到低）</option>
+                <option value="popularity">熱門程度</option>
+            </select>
+        </div>
+    </div>
+
+    <main>
+        <div class="product-grid">
+            <!-- 行程卡片將會由 JavaScript 動態載入 -->
+        </div>
+    </main>
+
+    <div class="pagination-controls" style="text-align: center; margin-top: 20px;">
+        <button id="prev-page" disabled>上一頁</button>
+        <span id="page-info"></span>
+        <button id="next-page" disabled>下一頁</button>
+    </div>
+
+    <footer>
+        <p>&copy; 2025 仿製介面</p>
+    </footer>
+
+    <script>
+        const productGrid = document.querySelector('.product-grid');
+        const searchInput = document.querySelector('.search-box input[type="text"]');
+        const sortBySelect = document.getElementById('sort-by');
+        const destinationSelect = document.getElementById('destination'); // 新增：取得目的地選單
+        const priceRangeSelect = document.getElementById('price-range'); // 新增：取得價格範圍選單
+        const prevButton = document.getElementById('prev-page');
+        const nextButton = document.getElementById('next-page');
+        const pageInfo = document.getElementById('page-info');
+
+        const itemsPerPage = 28; // 4 columns * 7 rows
+        let currentPage = 1;
+        let allProducts = []; // 存放從 JSON 讀取的原始、去重後的產品
+        let currentProductList = []; // 存放當前要顯示的產品列表 (可能經過搜尋或排序)
+        let totalPages = 1;
+
+        const imageDir = './img/product-grid/'; // 定義圖片目錄路徑
+        const defaultImage = 'https://www.liontravel.com/cto/view/default4-3.jpg'; // 預設圖片路徑
+
+        // 函數：清理 TourID 以符合檔名規則
+        function sanitizeTourID(tourId) {
+            if (!tourId) return `invalid_tourid_${Math.floor(Math.random() * 9000) + 1000}`;
+            let safeId = String(tourId).replace(/[\\/*?:"<>|]/g, "_"); // 替換無效字元
+            safeId = safeId.replace(/^\.+|\.+$/g, '').trim(); // 移除開頭結尾的點和空白
+            return safeId || `invalid_tourid_${Math.floor(Math.random() * 9000) + 1000}`; // 如果處理後為空，給予預設值
+        }
+
+        // 函數：顯示指定頁面的商品
+        function displayProducts(productsToShow) {
+            productGrid.innerHTML = ''; // 清空現有內容
+            if (!productsToShow || productsToShow.length === 0) {
+                productGrid.innerHTML = '<p>沒有找到符合條件的行程。</p>';
+                return;
+            }
+            productsToShow.forEach(product => {
+                const productCard = document.createElement('div');
+                productCard.classList.add('product-card');
+
+                const productLink = document.createElement('a');
+                productLink.href = product.referer || '#';
+                productLink.target = '_blank';
+
+                const productImg = document.createElement('img');
+                const safeTourId = sanitizeTourID(product.TourID); // 清理 TourID
+                const imageUrl = `${imageDir}${safeTourId}.jpg`; // 構造圖片路徑
+                productImg.src = imageUrl; // 設定圖片來源
+                productImg.alt = product.ProdName;
+                productImg.onerror = function() {
+                    this.src = defaultImage;
+                    console.warn(`無法載入圖片: ${imageUrl}, 使用預設圖片。`);
+                };
+
+                const productTitle = document.createElement('h2');
+                productTitle.textContent = product.ProdName;
+
+                const productPrice = document.createElement('p');
+                productPrice.classList.add('price');
+                const price = typeof product.ProdPrice === 'number' ? product.ProdPrice.toLocaleString() : '價格未知';
+                productPrice.textContent = `NT$ ${price} 起`;
+
+                productLink.appendChild(productImg);
+                productLink.appendChild(productTitle);
+                productLink.appendChild(productPrice);
+                productCard.appendChild(productLink);
+                productGrid.appendChild(productCard);
+            });
+        }
+
+        // 函數：更新分頁控制項狀態
+        function updatePagination(totalItems) {
+            totalPages = Math.ceil(totalItems / itemsPerPage);
+            if (totalPages <= 0) totalPages = 1; // 至少有1頁，即使是空的
+            pageInfo.textContent = `頁 ${currentPage} / ${totalPages}`;
+
+            prevButton.disabled = currentPage === 1;
+            nextButton.disabled = currentPage === totalPages || totalItems === 0;
+        }
+
+        // 函數：渲染指定頁面
+        function renderPage(pageNumber) {
+            currentPage = pageNumber;
+            const startIndex = (currentPage - 1) * itemsPerPage;
+            const endIndex = startIndex + itemsPerPage;
+            const paginatedItems = currentProductList.slice(startIndex, endIndex);
+
+            displayProducts(paginatedItems);
+            updatePagination(currentProductList.length);
+        }
+
+        // 函數：處理篩選和排序
+        function applyFiltersAndSort() {
+            const searchTerm = searchInput.value.toLowerCase().trim();
+            const sortBy = sortBySelect.value;
+            const selectedDestination = destinationSelect.value; // 新增：取得選擇的目的地
+            const selectedPriceRange = priceRangeSelect.value; // 新增：取得選擇的價格範圍
+
+            // 1. 從原始列表開始篩選
+            let filteredProducts = allProducts.filter(product => {
+                // 檢查產品名稱是否符合搜尋條件
+                const nameMatch = product.ProdName.toLowerCase().includes(searchTerm);
+
+                // 檢查目的地是否符合 (如果選擇了 "不限" 則跳過)
+                const destinationMatch = !selectedDestination || product.ProdName.toLowerCase().includes(selectedDestination.toLowerCase());
+
+                // 檢查價格範圍是否符合
+                const price = product.ProdPrice || 0; // 使用 0 作為預設值
+                let priceMatch = true; // 預設為 true (符合 "不限" 的情況)
+                if (selectedPriceRange) {
+                    if (selectedPriceRange === '0-50000') {
+                        priceMatch = price >= 0 && price <= 50000;
+                    } else if (selectedPriceRange === '50000-100000') {
+                        priceMatch = price > 50000 && price <= 100000;
+                    } else if (selectedPriceRange === '100000-') {
+                        priceMatch = price > 100000;
+                    }
+                }
+
+                return nameMatch && destinationMatch && priceMatch; // 必須同時符合所有條件
+            });
+
+            // 2. 排序篩選後的結果
+            let sortedProducts = [...filteredProducts]; // 複製一份陣列
+            switch (sortBy) {
+                case 'price-asc':
+                    sortedProducts.sort((a, b) => (a.ProdPrice || 0) - (b.ProdPrice || 0));
+                    break;
+                case 'price-desc':
+                    sortedProducts.sort((a, b) => (b.ProdPrice || 0) - (a.ProdPrice || 0));
+                    break;
+                case 'default':
+                default:
+                    break;
+            }
+
+            currentProductList = sortedProducts; // 更新當前列表
+            renderPage(1); // 重設到第一頁並渲染
+        }
+
+        fetch('./log_202409.json')
+            .then(response => {
+                if (!response.ok) {
+                    console.error('Fetch response not OK:', response);
+                    throw new Error(`HTTP error! status: ${response.status}.`);
+                }
+                return response.json();
+            })
+            .then(logs => {
+                const productMap = new Map();
+                logs.forEach(log => {
+                    let tourId = null;
+                    if (log.prod_info) {
+                        if (log.prod_info.ProdDetail && typeof log.prod_info.ProdDetail === 'object') {
+                            tourId = log.prod_info.ProdDetail.TourID;
+                        }
+                        if (!tourId) {
+                            tourId = log.prod_info.TourID;
+                        }
+                    }
+
+                    if (log.prod_info &&
+                        log.prod_info.ProdName &&
+                        log.prod_info.ProdName.length >= 15 &&
+                        log.prod_info.ProdPrice !== undefined &&
+                        tourId &&
+                        !productMap.has(log.prod_info.ProdName)) {
+                        productMap.set(log.prod_info.ProdName, {
+                            ...log.prod_info,
+                            TourID: tourId,
+                            referer: log.referer
+                        });
+                    }
+                });
+                allProducts = Array.from(productMap.values());
+                currentProductList = [...allProducts];
+
+                renderPage(1);
+
+                searchInput.addEventListener('input', applyFiltersAndSort);
+                sortBySelect.addEventListener('change', applyFiltersAndSort);
+                destinationSelect.addEventListener('change', applyFiltersAndSort);
+                priceRangeSelect.addEventListener('change', applyFiltersAndSort);
+
+                prevButton.addEventListener('click', () => {
+                    if (currentPage > 1) {
+                        renderPage(currentPage - 1);
+                    }
+                });
+
+                nextButton.addEventListener('click', () => {
+                    if (currentPage < totalPages) {
+                        renderPage(currentPage + 1);
+                    }
+                });
+            })
+            .catch(error => {
+                console.error('Error loading or processing products:', error);
+                productGrid.innerHTML = `<p>載入行程時發生錯誤，請稍後再試。</p>`;
+                prevButton.disabled = true;
+                nextButton.disabled = true;
+                pageInfo.textContent = '錯誤';
+            });
+    </script>
+</body>
+</html>
