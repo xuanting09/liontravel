@@ -9,7 +9,7 @@ import matplotlib.pyplot as plt
 with open("log_202409_part1.json", "r", encoding="utf-8") as file:
     log_data = json.load(file)
 
-with open("location_dict.json", "r", encoding="utf-8") as f:
+with open("updated_international_location_tags.json", "r", encoding="utf-8") as f:
     location_dict = json.load(f)
 
 tags_dict = {
