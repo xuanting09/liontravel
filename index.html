@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>雄獅旅遊儀表板</title>
+    <link rel="stylesheet" href="styles.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.9.1/chart.min.js"></script>
+</head>
+<body>
+    <!-- 側邊欄 -->
+    <div class="sidebar">
+        <div class="logo-container">
+            <div class="logo">
+                <img src="logo.png" alt="雄獅旅遊" >
+            </div>
+            <div>雄獅旅遊</div>
+        </div>
+        <div class="nav-item active">儀表板</div>
+        <div class="nav-item">使用者分析</div>
+        <div class="nav-item">標籤管理</div>
+        <div class="nav-item">訂單管理</div>
+        <div class="nav-item">內容管理(CMS)</div>
+        <div class="nav-item">客服與訊息系統</div>
+        <div class="nav-item">系統設定</div>
+    </div>
+
+    <!-- 主內容區域 -->
+    <div class="main-content">
+        <!-- 四個主要區塊 -->
+        <div class="dashboard-grid">
+            <!-- 左上區塊 - 資訊卡片 -->
+            <div class="grid-item top-left">
+                <div class="info-cards-vertical">
+                    <div class="info-card card-blue">
+                        <div class="card-title">訪客人數</div>
+                        <div class="card-data">
+                            <span class="card-value" id="visitors-count">0</span>
+                            <span class="card-unit">人</span>
+                        </div>
+                    </div>
+                    <div class="info-card card-orange">
+                        <div class="card-title">訂單數量</div>
+                        <div class="card-data">
+                            <span class="card-value" id="orders-count">0</span>
+                            <span class="card-unit">個</span>
+                        </div>
+                    </div>
+                    <div class="info-card card-yellow">
+                        <div class="card-title">營收金額</div>
+                        <div class="card-data">
+                            <span class="card-value" id="revenue-amount">0</span>
+                            <span class="card-unit">元</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- 右上區塊 - 水平長條圖 -->
+            <div class="grid-item top-right">
+                <div class="chart-box">
+                    <div class="chart-title">各區域數據統計</div>
+                    <div class="chart-container">
+                        <canvas id="barChart"></canvas>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- 左下區塊 - 圓餅圖 -->
+            <div class="grid-item bottom-left">
+                <div class="chart-box">
+                    <div class="chart-title">區域分布</div>
+                    <div class="chart-container">
+                        <canvas id="pieChart"></canvas>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- 右下區塊 - 比較長條圖 -->
+            <div class="grid-item bottom-right">
+                <div class="chart-box">
+                    <div class="chart-title">展示</div>
+                    <div class="chart-container">
+                        <canvas id="compareChart"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>
