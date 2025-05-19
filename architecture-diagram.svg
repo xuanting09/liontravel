@@ -1,0 +1,76 @@
+<svg viewBox="0 0 800 600" xmlns="http://www.w3.org/2000/svg">
+  <!-- 背景和標題 -->
+  <rect width="800" height="600" fill="#f5f5f5"/>
+  <text x="400" y="40" font-family="Arial, sans-serif" font-size="24" text-anchor="middle" font-weight="bold" fill="#333">雄獅旅遊混合推薦系統架構</text>
+  
+  <!-- 資料輸入層 -->
+  <rect x="50" y="80" width="700" height="80" rx="10" fill="#e6f7ff" stroke="#1890ff" stroke-width="2"/>
+  <text x="400" y="110" font-family="Arial, sans-serif" font-size="18" text-anchor="middle" font-weight="bold" fill="#1890ff">資料輸入層</text>
+  
+  <rect x="90" y="125" width="180" height="30" rx="5" fill="#ffffff" stroke="#1890ff"/>
+  <text x="180" y="145" font-family="Arial, sans-serif" font-size="14" text-anchor="middle">旅遊行程資料 (JSON/CSV)</text>
+  
+  <rect x="330" y="125" width="180" height="30" rx="5" fill="#ffffff" stroke="#1890ff"/>
+  <text x="420" y="145" font-family="Arial, sans-serif" font-size="14" text-anchor="middle">用戶行為日誌 (JSON)</text>
+  
+  <rect x="570" y="125" width="120" height="30" rx="5" fill="#ffffff" stroke="#1890ff"/>
+  <text x="630" y="145" font-family="Arial, sans-serif" font-size="14" text-anchor="middle">使用者輸入</text>
+  
+  <!-- 數據處理層 -->
+  <rect x="50" y="180" width="700" height="200" rx="10" fill="#f6ffed" stroke="#52c41a" stroke-width="2"/>
+  <text x="400" y="210" font-family="Arial, sans-serif" font-size="18" text-anchor="middle" font-weight="bold" fill="#52c41a">數據處理層</text>
+  
+  <rect x="80" y="230" width="200" height="130" rx="5" fill="#ffffff" stroke="#52c41a"/>
+  <text x="180" y="255" font-family="Arial, sans-serif" font-size="16" text-anchor="middle" font-weight="bold">行程資料處理</text>
+  <text x="180" y="280" font-family="Arial, sans-serif" font-size="14" text-anchor="middle">載入旅遊行程資料</text>
+  <text x="180" y="305" font-family="Arial, sans-serif" font-size="14" text-anchor="middle">預處理行程資料</text>
+  <text x="180" y="330" font-family="Arial, sans-serif" font-size="14" text-anchor="middle">提取標籤</text>
+  <text x="180" y="355" font-family="Arial, sans-serif" font-size="14" text-anchor="middle">向量化文本資料 (TF-IDF)</text>
+  
+  <rect x="320" y="230" width="200" height="130" rx="5" fill="#ffffff" stroke="#52c41a"/>
+  <text x="420" y="255" font-family="Arial, sans-serif" font-size="16" text-anchor="middle" font-weight="bold">用戶行為處理</text>
+  <text x="420" y="280" font-family="Arial, sans-serif" font-size="14" text-anchor="middle">載入用戶日誌</text>
+  <text x="420" y="305" font-family="Arial, sans-serif" font-size="14" text-anchor="middle">建立用戶偏好檔案</text>
+  <text x="420" y="330" font-family="Arial, sans-serif" font-size="14" text-anchor="middle">提取用戶-項目交互</text>
+  <text x="420" y="355" font-family="Arial, sans-serif" font-size="14" text-anchor="middle">計算標籤頻率和價格偏好</text>
+  
+  <rect x="560" y="230" width="160" height="130" rx="5" fill="#ffffff" stroke="#52c41a"/>
+  <text x="640" y="255" font-family="Arial, sans-serif" font-size="16" text-anchor="middle" font-weight="bold">協同過濾模型</text>
+  <text x="640" y="280" font-family="Arial, sans-serif" font-size="14" text-anchor="middle">建立用戶-項目矩陣</text>
+  <text x="640" y="305" font-family="Arial, sans-serif" font-size="14" text-anchor="middle">計算項目相似度矩陣</text>
+  <text x="640" y="330" font-family="Arial, sans-serif" font-size="14" text-anchor="middle">計算用戶相似度矩陣</text>
+  <text x="640" y="355" font-family="Arial, sans-serif" font-size="14" text-anchor="middle">基於餘弦相似度</text>
+  
+  <!-- 推薦引擎層 -->
+  <rect x="50" y="400" width="700" height="100" rx="10" fill="#fff2e8" stroke="#fa8c16" stroke-width="2"/>
+  <text x="400" y="430" font-family="Arial, sans-serif" font-size="18" text-anchor="middle" font-weight="bold" fill="#fa8c16">推薦引擎層</text>
+  
+  <rect x="80" y="450" width="140" height="30" rx="5" fill="#ffffff" stroke="#fa8c16"/>
+  <text x="150" y="470" font-family="Arial, sans-serif" font-size="14" text-anchor="middle">基於內容的推薦</text>
+  
+  <rect x="240" y="450" width="140" height="30" rx="5" fill="#ffffff" stroke="#fa8c16"/>
+  <text x="310" y="470" font-family="Arial, sans-serif" font-size="14" text-anchor="middle">基於用戶的推薦</text>
+  
+  <rect x="400" y="450" width="140" height="30" rx="5" fill="#ffffff" stroke="#fa8c16"/>
+  <text x="470" y="470" font-family="Arial, sans-serif" font-size="14" text-anchor="middle">基於項目的推薦</text>
+  
+  <rect x="560" y="450" width="140" height="30" rx="5" fill="#ffffff" stroke="#fa8c16"/>
+  <text x="630" y="470" font-family="Arial, sans-serif" font-size="14" text-anchor="middle">混合推薦方法</text>
+  
+  <!-- 使用者介面層 -->
+  <rect x="50" y="520" width="700" height="60" rx="10" fill="#f9f0ff" stroke="#722ed1" stroke-width="2"/>
+  <text x="400" y="550" font-family="Arial, sans-serif" font-size="18" text-anchor="middle" font-weight="bold" fill="#722ed1">使用者介面層 (互動模式)</text>
+  <text x="400" y="575" font-family="Arial, sans-serif" font-size="14" text-anchor="middle">關鍵詞搜索 | 標籤搜索 | 基於用戶的推薦 | 基於項目的推薦 | 混合推薦 | 系統資訊</text>
+
+  <!-- 箭頭 -->
+  <defs>
+    <marker id="arrowhead" markerWidth="10" markerHeight="7" refX="0" refY="3.5" orient="auto">
+      <polygon points="0 0, 10 3.5, 0 7" fill="#666"/>
+    </marker>
+  </defs>
+  
+  <!-- 資料流向箭頭 -->
+  <line x1="400" y1="160" x2="400" y2="180" stroke="#666" stroke-width="2" marker-end="url(#arrowhead)"/>
+  <line x1="400" y1="380" x2="400" y2="400" stroke="#666" stroke-width="2" marker-end="url(#arrowhead)"/>
+  <line x1="400" y1="500" x2="400" y2="520" stroke="#666" stroke-width="2" marker-end="url(#arrowhead)"/>
+</svg>
