@@ -211,20 +211,50 @@ main {
 }
 
 .product-card h2 {
-    font-size: 1.1rem;
-    margin: 15px;
-    height: 3.3em; /* 限制標題高度約為三行 */
+    font-size: 1.1rem; /* 保留使用者設定的字體大小 */
+    margin: 15px;     /* 保留使用者設定的邊距 */
+    line-height: 1.4; /* 設定更標準的行高，允許自然換行 */
+    /* 移除固定的高度、overflow 和 text-ellipsis，以允許自然文字流 */
+}
+
+/* 新增/恢復 product-bottom-row 的樣式，使其成為 flex 容器 */
+.product-bottom-row {
+    display: flex;
+    justify-content: space-between; /* 標籤在左，價格在右 */
+    align-items: flex-end;          /* 垂直向下對齊內部元素 */
+    padding: 0 15px 15px 15px;    /* 與卡片標題邊距一致的內邊距 */
+    margin-top: 10px;             /* 在標題和此行之間添加一些間距 */
+}
+
+/* 新增/恢復 product-tags 的樣式 */
+.product-tags {
+    display: flex; /* 使標籤按鈕水平排列 */
+    flex-wrap: wrap; /* 如果標籤過多則換行 */
+    gap: 5px;        /* 標籤之間的間距 */
+    flex-grow: 1;    /* 允許標籤區域佔據可用空間 */
+}
+
+/* 新增/恢復 tag-button 的樣式 */
+.tag-button {
+    background-color: #f0f0f0;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    padding: 3px 6px;
+    font-size: 0.7em;
+    color: #555;
+    text-align: center;
+    white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
-    line-height: 1.1em;
 }
 
 .product-card .price {
-    font-size: 1.2rem;
-    font-weight: bold;
-    color: #e60012; /* 雄獅紅 */
-    margin: 0 15px 15px;
-    text-align: right;
+    font-size: 1.2rem;   /* 保留使用者設定的字體大小 */
+    font-weight: bold; /* 保留使用者設定的字體粗細 */
+    color: #e60012;     /* 保留使用者設定的顏色 (雄獅紅) */
+    margin: 0;          /* 作為 flex 子項目，重設邊距，由父容器控制間距 */
+    white-space: nowrap; /* 防止價格換行 */
+    /* text-align: right; 已由父容器的 justify-content: space-between; 處理對齊 */
 }
 
 footer {
