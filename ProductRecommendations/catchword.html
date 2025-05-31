@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>🌐 產品自動擷取標籤工具</title>
+  <link rel="stylesheet" href="catchwordstyle.css" />
+</head>
+<body>
+  <h1>🌐 產品自動擷取標籤工具</h1>
+
+  <!-- 1. 產品編號 -->
+  <div class="form-group">
+    <label for="productID">產品編號</label>
+    <input type="text" id="productID" placeholder="請輸入或貼上產品編號…" />
+  </div>
+
+  <!-- 2. 產品名稱 -->
+  <div class="form-group">
+    <label for="prodName">輸入產品名稱</label>
+    <input type="text" id="prodName" placeholder="請貼上完整產品名稱…" />
+  </div>
+
+  <!-- 3. 是否為國外產品 -->
+  <div class="form-group">
+    <label>
+      <input type="checkbox" id="isForeign" />
+      是否為國外產品
+    </label>
+  </div>
+
+  <!-- 4. 價格 (NTD) -->
+  <div class="form-group">
+    <label for="price">價格 (NTD)</label>
+    <input type="number" id="price" placeholder="請輸入售價（僅數字）" />
+  </div>
+
+  <!-- 5. 「擷取標籤」按鈕 -->
+  <div class="form-group">
+    <button id="extractBtn">🔍 擷取標籤</button>
+  </div>
+
+  <!-- 6. 活動類型 -->
+  <div class="form-group">
+    <label for="activityType">活動類型</label>
+    <input type="text" id="activityType" placeholder="例：自由行、跟團、單點門票…" />
+  </div>
+
+  <!-- 7. 地點／景點（細節描述） -->
+  <div class="form-group">
+    <label for="locationSpot">地點／景點（細節描述）</label>
+    <input type="text" id="locationSpot" placeholder="例：九份老街、猴硐貓村、十分天燈…" />
+  </div>
+
+  <div id="message" style="display: none;"></div>
+
+  <div id="result" style="display: none;">
+    <h2>擷取結果</h2>
+
+    <div class="section">
+      <strong>地點標籤：</strong>
+      <div id="locationTags" class="tag-editable" contenteditable="true"></div>
+    </div>
+
+    <div class="section">
+      <strong>活動標籤：</strong>
+      <div id="activityTags" class="tag-editable" contenteditable="true"></div>
+    </div>
+
+    <div id="existMessage" class="exist-msg"></div>
+
+    <button id="copyBtn" style="display: none;">📋 複製 CSV 列</button>
+    <div id="copyMsg">✅ 已複製到剪貼簿！請貼至 CSV。</div>
+  </div>
+
+  <script src="catchwordscript.js"></script>
+</body>
+</html>
