@@ -1,78 +1,377 @@
 <!DOCTYPE html>
-<html lang="zh-Hant">
+<html lang="zh-TW">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>🌐 產品自動擷取標籤工具</title>
-  <link rel="stylesheet" href="catchwordstyle.css" />
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>旅遊產品標籤擷取工具</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Microsoft JhengHei', '微軟正黑體', Arial, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #667eea 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 20px;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+            backdrop-filter: blur(10px);
+            overflow: hidden;
+        }
+
+        .header {
+            background: linear-gradient(135deg, rgb(34, 72, 166) 0%, rgb(66, 108, 213)  100%);
+            color: white;
+            padding: 30px;
+            text-align: center;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .header::before {
+            content: '';
+            position: absolute;
+            top: -50%;
+            left: -50%;
+            width: 200%;
+            height: 200%;
+            background: radial-gradient(circle, rgba(255,255,255,0.1) 20%, transparent 21%);
+            background-size: 20px 20px;
+            animation: float 20s linear infinite;
+        }
+
+        @keyframes float {
+            0% { transform: translate(-50%, -50%) rotate(0deg); }
+            100% { transform: translate(-50%, -50%) rotate(360deg); }
+        }
+
+        .header h1 {
+            font-size: 2.5rem;
+            font-weight: 700;
+            margin-bottom: 10px;
+            position: relative;
+            z-index: 1;
+        }
+
+        .header p {
+            font-size: 1.1rem;
+            opacity: 0.9;
+            position: relative;
+            z-index: 1;
+        }
+
+        .form-section {
+            padding: 40px;
+        }
+
+        .form-group {
+            margin-bottom: 25px;
+        }
+
+        .form-group label {
+            display: block;
+            font-weight: 600;
+            margin-bottom: 8px;
+            color: #333;
+            font-size: 1rem;
+        }
+
+        .form-group input[type="text"],
+        .form-group input[type="number"],
+        .form-group textarea {
+            width: 100%;
+            padding: 12px 16px;
+            border: 2px solid #e0e0e0;
+            border-radius: 12px;
+            font-size: 1rem;
+            transition: all 0.3s ease;
+            background: rgba(255, 255, 255, 0.8);
+        }
+
+        .form-group input[type="text"]:focus,
+        .form-group input[type="number"]:focus,
+        .form-group textarea:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+            transform: translateY(-2px);
+        }
+
+        .checkbox-group {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-top: 8px;
+        }
+
+        .checkbox-group input[type="checkbox"] {
+            width: 20px;
+            height: 20px;
+            accent-color: #667eea;
+            cursor: pointer;
+        }
+
+        .checkbox-group label {
+            margin: 0;
+            cursor: pointer;
+            font-weight: 500;
+        }
+
+        .button-group {
+            display: flex;
+            gap: 15px;
+            flex-wrap: wrap;
+            margin-top: 30px;
+        }
+
+        .btn {
+            padding: 12px 24px;
+            border: none;
+            border-radius: 12px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-decoration: none;
+            display: inline-block;
+            text-align: center;
+            min-width: 120px;
+        }
+
+        .btn-primary {
+            background: linear-gradient(45deg, #667eea, #667eea);
+            color: white;
+            box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(102, 126, 234, 0.4);
+        }
+
+        .btn-secondary {
+            background: linear-gradient(45deg, #ff7e5f, #feb47b);
+            color: white;
+            box-shadow: 0 4px 15px rgba(255, 126, 95, 0.3);
+        }
+
+        .btn-secondary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(255, 126, 95, 0.4);
+        }
+
+        .btn-clear {
+            background: linear-gradient(45deg, #6c757d, #495057);
+            color: white;
+            box-shadow: 0 4px 15px rgba(108, 117, 125, 0.3);
+        }
+
+        .btn-clear:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(108, 117, 125, 0.4);
+        }
+
+        .message {
+            padding: 15px 20px;
+            border-radius: 12px;
+            margin: 20px 0;
+            font-weight: 500;
+            display: none;
+            animation: slideIn 0.3s ease;
+        }
+
+        @keyframes slideIn {
+            from { opacity: 0; transform: translateY(-10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .message.success {
+            background: linear-gradient(45deg, #28a745, #20c997);
+            color: white;
+            box-shadow: 0 4px 15px rgba(40, 167, 69, 0.3);
+        }
+
+        .message.error {
+            background: linear-gradient(45deg, #dc3545, #fd7e14);
+            color: white;
+            box-shadow: 0 4px 15px rgba(220, 53, 69, 0.3);
+        }
+
+        .result-section {
+            display: none;
+            margin-top: 30px;
+            padding: 25px;
+            background: linear-gradient(135deg, rgba(102, 126, 234, 0.05), rgba(118, 75, 162, 0.05));
+            border-radius: 15px;
+            border: 2px solid rgba(102, 126, 234, 0.1);
+        }
+
+        .exist-message {
+            padding: 15px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            font-weight: 500;
+            border-left: 4px solid;
+            background: rgba(255, 255, 255, 0.8);
+        }
+
+        .copy-message {
+            display: none;
+            padding: 12px;
+            border-radius: 8px;
+            margin-top: 10px;
+            font-weight: 500;
+            background: rgba(46, 125, 50, 0.1);
+            border: 1px solid rgba(46, 125, 50, 0.3);
+        }
+
+        .form-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+        }
+
+        .form-row-3 {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr;
+            gap: 20px;
+        }
+
+        .textarea-group textarea {
+            min-height: 80px;
+            resize: vertical;
+        }
+
+        @media (max-width: 768px) {
+            .form-row,
+            .form-row-3 {
+                grid-template-columns: 1fr;
+            }
+            
+            .button-group {
+                flex-direction: column;
+            }
+            
+            .btn {
+                width: 100%;
+            }
+            
+            .header h1 {
+                font-size: 2rem;
+            }
+            
+            .form-section {
+                padding: 20px;
+            }
+        }
+
+        .loading {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid rgba(255,255,255,.3);
+            border-radius: 50%;
+            border-top-color: #fff;
+            animation: spin 1s ease-in-out infinite;
+            margin-left: 10px;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+    </style>
 </head>
 <body>
-  <h1>🌐 產品自動擷取標籤工具</h1>
+    <div class="container">
+        <div class="header">
+            <h1>🏖️ 旅遊產品標籤擷取工具</h1>
+            <p>AI 智能分析產品名稱，自動擷取地點與活動標籤</p>
+        </div>
 
-  <!-- 1. 產品編號 -->
-  <div class="form-group">
-    <label for="productID">產品編號</label>
-    <input type="text" id="productID" placeholder="請輸入或貼上產品編號…" />
-  </div>
+        <div class="form-section">
+            <div id="message" class="message"></div>
 
-  <!-- 2. 產品名稱 -->
-  <div class="form-group">
-    <label for="prodName">輸入產品名稱</label>
-    <input type="text" id="prodName" placeholder="請貼上完整產品名稱…" />
-  </div>
+            <div class="form-row-3">
+                <div class="form-group">
+                    <label for="productID">產品編號</label>
+                    <input type="text" id="productID" placeholder="輸入產品編號">
+                </div>
+                <div class="form-group">
+                    <label for="prodName">產品名稱 <span style="color: #dc3545;">*</span></label>
+                    <input type="text" id="prodName" placeholder="輸入產品名稱" required>
+                </div>
+                <div class="form-group">
+                    <label for="price">價格</label>
+                    <input type="number" id="price" placeholder="輸入價格" min="0">
+                </div>
+            </div>
 
-  <!-- 3. 是否為國外產品 -->
-  <div class="form-group">
-    <label>
-      <input type="checkbox" id="isForeign" />
-      是否為國外產品
-    </label>
-  </div>
+            <div class="form-group">
+                <div class="checkbox-group">
+                    <input type="checkbox" id="isForeign">
+                    <label for="isForeign">🌍 是否為國外產品</label>
+                </div>
+            </div>
 
-  <!-- 4. 價格 (NTD) -->
-  <div class="form-group">
-    <label for="price">價格 (NTD)</label>
-    <input type="number" id="price" placeholder="請輸入售價（僅數字）" />
-  </div>
+            <div class="button-group">
+                <button id="extractBtn" class="btn btn-primary">
+                    🚀 開始擷取標籤
+                </button>
+                <button id="clearBtn" class="btn btn-clear">
+                    🗑️ 清空表單
+                </button>
+            </div>
 
-  <!-- 5. 「擷取標籤」按鈕 -->
-  <div class="form-group">
-    <button id="extractBtn">🔍 擷取標籤</button>
-  </div>
+            <div id="result" class="result-section">
+                <div id="existMessage" class="exist-message"></div>
 
-  <!-- 6. 活動類型 -->
-  <div class="form-group">
-    <label for="activityType">活動類型</label>
-    <input type="text" id="activityType" placeholder="例：自由行、跟團、單點門票…" />
-  </div>
+                <div class="form-row">
+                    <div class="form-group textarea-group">
+                        <label for="activityTypeInput">
+                            🎯 活動類型
+                            <small style="color: #6c757d; font-weight: normal;">(多個標籤請用 , 分隔)</small>
+                        </label>
+                        <textarea 
+                            id="activityTypeInput" 
+                            placeholder="例如：主題樂園, 自然景觀, 美食"
+                            list="activityList"
+                        ></textarea>
+                        <datalist id="activityList"></datalist>
+                    </div>
+                    <div class="form-group textarea-group">
+                        <label for="locationSpotInput">
+                            📍 地點/景點
+                            <small style="color: #6c757d; font-weight: normal;">(多個地點請用 , 分隔)</small>
+                        </label>
+                        <textarea 
+                            id="locationSpotInput" 
+                            placeholder="例如：日本, 京都, 大阪"
+                            list="locationList"
+                        ></textarea>
+                        <datalist id="locationList"></datalist>
+                    </div>
+                </div>
 
-  <!-- 7. 地點／景點（細節描述） -->
-  <div class="form-group">
-    <label for="locationSpot">地點／景點（細節描述）</label>
-    <input type="text" id="locationSpot" placeholder="例：九份老街、猴硐貓村、十分天燈…" />
-  </div>
+                <div class="button-group">
+                    <button id="copyBtn" class="btn btn-secondary">
+                        📋 複製 CSV 列
+                    </button>
+                </div>
 
-  <div id="message" style="display: none;"></div>
-
-  <div id="result" style="display: none;">
-    <h2>擷取結果</h2>
-
-    <div class="section">
-      <strong>地點標籤：</strong>
-      <div id="locationTags" class="tag-editable" contenteditable="true"></div>
+                <div id="copyMsg" class="copy-message"></div>
+            </div>
+        </div>
     </div>
 
-    <div class="section">
-      <strong>活動標籤：</strong>
-      <div id="activityTags" class="tag-editable" contenteditable="true"></div>
-    </div>
-
-    <div id="existMessage" class="exist-msg"></div>
-
-    <button id="copyBtn" style="display: none;">📋 複製 CSV 列</button>
-    <div id="copyMsg">✅ 已複製到剪貼簿！請貼至 CSV。</div>
-  </div>
-
-  <script src="catchwordscript.js"></script>
+    <script src="catchwordscript.js"></script>
 </body>
 </html>

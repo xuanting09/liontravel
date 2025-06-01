@@ -1,6 +1,9 @@
-// 1. alias_map 定義（簡寫對應）
+// ---------------------------------------------
+// 1. alias_map（簡寫對應地點）
+// ---------------------------------------------
 const alias_map = {
   "德瑞": ["德國", "瑞士"],
+  "新馬": ["新加坡", "馬來西亞"],
   "京板": ["京都", "大阪"],
   "京阪神": ["京都", "大阪", "神戶"],
   "德法": ["德國", "法國"],
@@ -15,12 +18,15 @@ const alias_map = {
   "義德瑞": ["義大利", "德國", "瑞士"],
   "義德法": ["義大利", "德國", "法國"],
   "義德瑞法": ["義大利", "德國", "瑞士", "法國"],
-  "義瑞法": ["義大利", "瑞士", "法國"],
+  "荷比法": ["荷蘭", "比利時", "法國"],
   "義瑞德": ["義大利", "瑞士", "德國"],
   "義瑞德法": ["義大利", "瑞士", "德國", "法國"]
 };
 
-// 2. tags_dict 定義（活動分類對應關鍵詞），其中「文化歷史」已依要求新增 "大社"、"院" 等字串
+// ---------------------------------------------
+// 2. tags_dict（活動分類對應關鍵字）
+//    只把「分類名稱」（key）當建議候選項
+// ---------------------------------------------
 const tags_dict = {
   "主題樂園": ["環球影城", "迪士尼", "樂園", "遊樂園"],
   "自然景觀": ["峽灣", "森林", "湖", "溫泉", "瀑布", "山", "海灘", "草原", "自然", "極光", "星空", "雲海", "楓", "櫻", "櫻花", "楓葉", "觀景", "落羽松"],
@@ -40,73 +46,108 @@ const tags_dict = {
   "夜間活動": ["夜景", "夜市", "夜生活", "燈光秀", "夜拍", "夜遊"]
 };
 
-// 3. 全域變數：扁平化後的地點關鍵詞、CSV 中既有商品資訊
-let knownLocationKeywords = [];       // 來自 JSON 扁平化後的所有地點字串
+// ---------------------------------------------
+// 3. 全域變數
+// ---------------------------------------------
+let knownLocationKeywords = [];       // 扁平化後的地點關鍵字清單
 let existingProducts = [];            // CSV 中所有「產品名稱」
-let existingProductInfo = {};         // 存放 { 產品名稱: { id, isForeign, price, activityType, locationSpot, locTags:[...], actTags:[...] } }
-let lastExtractedName = "";           // 當前操作的產品名稱
+let existingProductInfo = {};         // { name: { id, isForeign, price, activityType, locationSpot, locTags, actTags } }
+let lastExtractedName = "";           // 當前操作的「產品名稱」
 
-// 4. 讀取 JSON 並扁平化 location keywords
+// ---------------------------------------------
+// 4. 讀取 JSON 並扁平化 locationKeywords（新版）
+// ---------------------------------------------
 function flattenLocations(obj, collectorSet) {
   if (Array.isArray(obj)) {
-    obj.forEach(item => collectorSet.add(item));
+    obj.forEach(item => {
+      if (typeof item === 'string' && item.trim()) {
+        collectorSet.add(item.trim());
+      }
+    });
   } else if (typeof obj === "object" && obj !== null) {
-    Object.values(obj).forEach(child => flattenLocations(child, collectorSet));
+    Object.entries(obj).forEach(([key, value]) => {
+      if (typeof key === "string" && key.trim()) {
+        collectorSet.add(key.trim());
+      }
+      flattenLocations(value, collectorSet);
+    });
+  } else if (typeof obj === 'string' && obj.trim()) {
+    collectorSet.add(obj.trim());
   }
 }
 
 async function loadLocationJSON() {
   try {
-    // 若 updated_international_location_tags.json 位於同一層，直接 fetch("updated_international_location_tags.json")
-    // 若它在 ProductRecommendations 資料夾，請改成："ProductRecommendations/updated_international_location_tags.json"
+    console.log("🔄 開始載入地點 JSON...");
+    
     const resp = await fetch("updated_international_location_tags.json");
-    if (!resp.ok) throw new Error("無法讀取 JSON：" + resp.status);
-    const jsonData = await resp.json();
-    const s = new Set();
-    flattenLocations(jsonData, s);
-    knownLocationKeywords = Array.from(s);
-    console.log("已載入並扁平化地點關鍵詞，共 " + knownLocationKeywords.length + " 個。");
+    if (!resp.ok) {
+      throw new Error(`HTTP錯誤: ${resp.status} ${resp.statusText}`);
+    }
+    const text = await resp.text();
+    let jsonData;
+    try {
+      jsonData = JSON.parse(text);
+    } catch (parseError) {
+      console.error("❌ JSON 解析錯誤:", parseError);
+      throw new Error("JSON 格式錯誤: " + parseError.message);
+    }
+    
+    const locationSet = new Set();
+    flattenLocations(jsonData, locationSet);
+    knownLocationKeywords = Array.from(locationSet).sort();
+    console.log("✅ 成功載入並扁平化地點關鍵字，共", knownLocationKeywords.length, "個");
+    
+    // 將地點關鍵字塞進 datalist 
+    const locDatalist = document.getElementById("locationList");
+    if (locDatalist) {
+      locDatalist.innerHTML = "";
+      knownLocationKeywords.forEach(loc => {
+        const option = document.createElement("option");
+        option.value = loc;
+        locDatalist.appendChild(option);
+      });
+    } else {
+      console.warn("⚠️ 找不到 locationList datalist 元素");
+    }
+
   } catch (err) {
-    console.error(err);
+    console.error("❌ 讀取地點 JSON 失敗：", err);
     showMessage("讀取地點 JSON 失敗：" + err.message, "error");
+    
+    // 如果讀不到 JSON，就用這些備用地點
+    knownLocationKeywords = [
+      "杜拜", "帆船酒店", "哈里發塔", "七星帆船", "六星亞特蘭提斯", 
+      "東京", "橫濱", "箱根", "鎌倉", "群馬", "大阪", "京都", "神戶"
+    ].sort();
   }
 }
 
-// 5. 讀取 產品資料.csv，支援新版（8 欄）或舊版（3 欄）
+// ---------------------------------------------
+// 5. 讀取 產品資料.csv（支援 3 欄或 8 欄）
+// ---------------------------------------------
 async function loadProductCSV() {
   try {
-    // 若 產品資料.csv 位於同一層，就直接 fetch("產品資料.csv")
-    // 若在 ProductRecommendations 資料夾，請用 fetch("ProductRecommendations/產品資料.csv")
     const resp = await fetch("產品資料.csv");
     if (!resp.ok) throw new Error("無法讀取 CSV：" + resp.status);
     const text = await resp.text();
     const lines = text.split("\n").filter(line => line.trim() !== "");
-    if (lines.length <= 1) {
-      console.warn("CSV 只有表頭或無其他資料。");
-      return;
-    }
+    if (lines.length <= 1) return;
+
     lines.slice(1).forEach(line => {
       const cells = line.split(",");
       if (cells.length >= 8) {
-        // 新版：8欄：0:id,1:name,2:isForeign,3:price,4:activityType,5:locationSpot,6:locTags,7:actTags
+        // 8 欄格式：0:id,1:name,2:isForeign,3:price,4:activityType,5:locationSpot,6:locTags,7:actTags
         const _id = cells[0].trim();
         const name = cells[1].trim();
         const isForeign = cells[2].trim();
         const price = cells[3].trim();
         const activityType = cells[4].trim();
         const locationSpot = cells[5].trim();
-
-        // 先去掉左右成對的引號，再拆 ";"
         let rawLoc = cells[6].trim().replace(/^"(.*)"$/, "$1");
         let rawAct = cells[7].trim().replace(/^"(.*)"$/, "$1");
-        const locTags = rawLoc
-          .split(";")
-          .map(x => x.trim())
-          .filter(x => x);
-        const actTags = rawAct
-          .split(";")
-          .map(x => x.trim())
-          .filter(x => x);
+        const locTags = rawLoc ? rawLoc.split(",").map(x => x.trim()).filter(x => x) : [];
+        const actTags = rawAct ? rawAct.split(",").map(x => x.trim()).filter(x => x) : [];
 
         if (name) {
           existingProducts.push(name);
@@ -121,19 +162,12 @@ async function loadProductCSV() {
           };
         }
       } else if (cells.length >= 3) {
-        // 舊版：3欄：0:name,1:locTags,2:actTags
+        // 3 欄格式：0:name,1:locTags,2:actTags
         const name = cells[0].trim();
-
         let rawLoc = cells[1].trim().replace(/^"(.*)"$/, "$1");
         let rawAct = cells[2].trim().replace(/^"(.*)"$/, "$1");
-        const locTags = rawLoc
-          .split(";")
-          .map(x => x.trim())
-          .filter(x => x);
-        const actTags = rawAct
-          .split(";")
-          .map(x => x.trim())
-          .filter(x => x);
+        const locTags = rawLoc ? rawLoc.split(",").map(x => x.trim()).filter(x => x) : [];
+        const actTags = rawAct ? rawAct.split(",").map(x => x.trim()).filter(x => x) : [];
 
         if (name) {
           existingProducts.push(name);
@@ -151,71 +185,87 @@ async function loadProductCSV() {
         console.warn("跳過無法辨識的 CSV 行：", line);
       }
     });
-    console.log("已載入現有商品，共 " + existingProducts.length + " 筆。");
+    console.log("已載入現有商品，共", existingProducts.length, "筆");
   } catch (err) {
-    console.error(err);
+    console.error("讀取產品 CSV 失敗：", err);
     showMessage("讀取產品 CSV 失敗：" + err.message, "error");
   }
 }
 
+// ---------------------------------------------
 // 6. 顯示／清除訊息
+// ---------------------------------------------
 function showMessage(text, type = "success") {
   const msgDiv = document.getElementById("message");
-  msgDiv.textContent = text;
-  msgDiv.className = "";
-  msgDiv.classList.add(type);
-  msgDiv.style.display = "block";
+  if (msgDiv) {
+    msgDiv.textContent = text;
+    msgDiv.className = "";
+    msgDiv.classList.add(type);
+    msgDiv.style.display = "block";
+  }
 }
 function clearMessage() {
   const msgDiv = document.getElementById("message");
-  msgDiv.style.display = "none";
-  msgDiv.textContent = "";
-  msgDiv.className = "";
+  if (msgDiv) {
+    msgDiv.style.display = "none";
+    msgDiv.textContent = "";
+    msgDiv.className = "";
+  }
 }
 
-// 7. 擷取地點標籤（包含 alias_map 處理）
+// ---------------------------------------------
+// 7. 擷取地點標籤（含 alias_map + 已扁平化關鍵字）
+// ---------------------------------------------
 function extractLocationTags(productName) {
   const found = new Set();
-  // 處理 alias_map
-  Object.keys(alias_map).forEach(aliasKey => {
-    if (productName.includes(aliasKey)) {
-      alias_map[aliasKey].forEach(expanded => found.add(expanded));
+  const lowerName = productName.toLowerCase();
+
+  // 先處理 alias_map
+  Object.entries(alias_map).forEach(([aliasKey, expandedArray]) => {
+    if (lowerName.includes(aliasKey.toLowerCase())) {
+      expandedArray.forEach(expanded => found.add(expanded));
     }
   });
-  // 用扁平化後的 knownLocationKeywords 比對
+
+  // 再比對 knownLocationKeywords
   knownLocationKeywords.forEach(loc => {
-    if (productName.includes(loc)) {
+    if (lowerName.includes(loc.toLowerCase())) {
       found.add(loc);
     }
   });
+
   return Array.from(found);
 }
 
-// 8. 擷取活動標籤
+// ---------------------------------------------
+// 8. 擷取活動標籤（回傳「分類名稱」）
+// ---------------------------------------------
 function extractActivityTags(productName) {
   const foundTags = [];
+  const lowerName = productName.toLowerCase();
+
   Object.entries(tags_dict).forEach(([category, keywords]) => {
     for (const kw of keywords) {
-      if (productName.includes(kw)) {
+      if (lowerName.includes(kw.toLowerCase())) {
         foundTags.push(category);
-        break;
+        break; // 同一分類只取一次
       }
     }
   });
+
   return foundTags;
 }
 
-// 9. 按下「擷取標籤」按鈕
+// ---------------------------------------------
+// 9. 點擊「擷取標籤」按鈕
+// ---------------------------------------------
 document.getElementById("extractBtn").addEventListener("click", () => {
   clearMessage();
-  // 先取所有欄位值
-  const inputID = document.getElementById("productID").value.trim();
-  const inputName = document.getElementById("prodName").value.trim();
-  const isForeign = document.getElementById("isForeign").checked ? "Y" : "N";
-  const price = document.getElementById("price").value.trim();
-  // 下方兩行留給使用者自行編輯，不要覆蓋：
-  // const activityType = document.getElementById("activityType").value.trim();
-  // const locationSpot = document.getElementById("locationSpot").value.trim();
+
+  const inputID    = document.getElementById("productID").value.trim();
+  const inputName  = document.getElementById("prodName").value.trim();
+  const isForeign  = document.getElementById("isForeign").checked ? "True" : "False";
+  const price      = document.getElementById("price").value.trim();
 
   if (!inputName) {
     showMessage("請先輸入產品名稱。", "error");
@@ -229,78 +279,180 @@ document.getElementById("extractBtn").addEventListener("click", () => {
   let existingInfo = null;
 
   if (isExisting) {
-    // CSV 裡已有：只把「地點標籤」和「活動標籤」帶入
+    // 對已存在產品，直接回帶舊的 locTags + actTags
     existingInfo = existingProductInfo[inputName];
     locTags = existingInfo.locTags || [];
     actTags = existingInfo.actTags || [];
-    // 千萬不要自動填 activityType、locationSpot，保留使用者原本輸入
-    // document.getElementById("activityType").value = existingInfo.activityType || "";
-    // document.getElementById("locationSpot").value = existingInfo.locationSpot || "";
   } else {
-    // 新商品：使用者自己填的 activityType、locationSpot 原樣保留
-    locTags = extractLocationTags(inputName);
-    actTags = extractActivityTags(inputName);
+    // 新商品：以 AI 演算法自動擷取
+    locTags = extractLocationTags(inputName); // e.g. ["馬六甲", "荷蘭紅屋", ...]
+    actTags = extractActivityTags(inputName); // e.g. ["文化歷史", "美食", ...]
   }
 
-  // 9.1 顯示標籤到下方可編輯區，分號分隔
-  document.getElementById("locationTags").textContent =
-    locTags.length > 0 ? locTags.join("; ") : "";
-  document.getElementById("activityTags").textContent =
-    actTags.length > 0 ? actTags.join("; ") : "";
+  // ---------------------------------------------------
+  // 9.1 活動標籤：去重後用 ", " 串起，填到 #activityTypeInput
+  // ---------------------------------------------------
+  const actCombined = [...new Set(actTags)]; // 去重
+  document.getElementById("activityTypeInput").value = actCombined.join(", ");
 
-  // 9.2 顯示「新商品 / 已存在」訊息，並控制「複製 CSV 列」按鈕
+  // ---------------------------------------------------
+  // 9.2 地點標籤：去重後用 ", " 串起，填到 #locationSpotInput
+  // ---------------------------------------------------
+  const locCombined = [...new Set(locTags)]; // 去重
+  document.getElementById("locationSpotInput").value = locCombined.join(", ");
+
+  // ---------------------------------------------------
+  // 9.3 顯示「已存在 / 新商品」提示 & 控制「複製 CSV 列」按鈕
+  // ---------------------------------------------------
   const existMsgEl = document.getElementById("existMessage");
-  const copyBtn = document.getElementById("copyBtn");
-  const copyMsg = document.getElementById("copyMsg");
+  const copyBtn    = document.getElementById("copyBtn");
+  const copyMsg    = document.getElementById("copyMsg");
 
   if (isExisting) {
-    existMsgEl.textContent =
-      "⚠️ 此產品已存在於 產品資料.csv 中，已自動帶入「地點標籤」「活動標籤」。若需修改，請自行到 CSV 編輯該筆。";
-    existMsgEl.style.color = "#c62828";
-    copyBtn.style.display = "none"; // 已存在就不需要複製新增
-    copyMsg.style.display = "none";
+    if (existMsgEl) {
+      existMsgEl.textContent =
+        "⚠️ 此產品已存在於 產品資料.csv 中，已自動帶入先前的「活動類型」＆「地點／景點」。若需修改，請直接於下方欄位自行編輯，並自行更新 CSV。";
+      existMsgEl.style.color = "#c62828";
+    }
+    if (copyBtn) copyBtn.style.display = "none";
+    if (copyMsg) copyMsg.style.display = "none";
   } else {
-    existMsgEl.textContent =
-      "✅ 新商品！系統自動擷取標籤，若有誤可在上方直接編輯各欄位後，再點「複製 CSV 列」加入 CSV。";
-    existMsgEl.style.color = "#2e7d32";
-    copyBtn.style.display = "inline-block"; // 顯示「複製 CSV 列」按鈕
-    copyMsg.style.display = "none"; // 重置複製提示
+    if (existMsgEl) {
+      existMsgEl.textContent =
+        "✅ 新商品！已以 AI 演算法擷取「活動類型」＆「地點／景點」。若標籤不足，可直接修改或新增，使用「,」分隔多筆。確認無誤後，點「複製 CSV 列」加入 CSV。";
+      existMsgEl.style.color = "#2e7d32";
+    }
+    if (copyBtn) copyBtn.style.display = "inline-block";
+    if (copyMsg) copyMsg.style.display = "none";
   }
 
-  document.getElementById("result").style.display = "block";
+  const resultDiv = document.getElementById("result");
+  if (resultDiv) {
+    resultDiv.style.display = "block";
+  }
+
+  showMessage(`已擷取標籤：地點 ${locCombined.length} 個，活動 ${actCombined.length} 個`, "success");
 });
 
-// 10. 「複製 CSV 列」按鈕事件：組出完整 8 欄並複製到剪貼簿
+// ---------------------------------------------
+// 10. 「複製 CSV 列」按鈕事件
+//     → 產生 7 欄：產品編號, 產品名稱, 是否為國外產品, 價格, 活動類型, 地點/景點, 標籤
+// ---------------------------------------------
 document.getElementById("copyBtn").addEventListener("click", () => {
-  // 先讀取使用者在 UI 上所有欄位 (編輯後的結果)
-  const inputID = document.getElementById("productID").value.trim();
+  const inputID   = document.getElementById("productID").value.trim();
   const inputName = document.getElementById("prodName").value.trim();
-  const isForeign = document.getElementById("isForeign").checked ? "Y" : "N";
-  const price = document.getElementById("price").value.trim();
-  const activityType = document.getElementById("activityType").value.trim();
-  const locationSpot = document.getElementById("locationSpot").value.trim();
-  // 讀取可編輯的標籤 (textContent)
-  let locText = document.getElementById("locationTags").textContent.trim();
-  let actText = document.getElementById("activityTags").textContent.trim();
-  // 如果使用者把其中一欄留空，則給空字串
-  locText = locText || "";
-  actText = actText || "";
-  // 組出 CSV 八欄：
-  // 1.ID, 2.名稱, 3.是否國外, 4.價格, 5.活動類型, 6.地點景點, 7.地點標籤, 8.活動標籤
-  const csvLine = `${inputID},${inputName},${isForeign},${price},${activityType},${locationSpot},${locText},${actText}`;
+  const isForeign = document.getElementById("isForeign").checked ? "True" : "False";
+  const price     = document.getElementById("price").value.trim();
+
+  // 1) 拆解「活動類型」欄位
+  const actRaw = document.getElementById("activityTypeInput").value.trim();
+  const activityTypeList = actRaw
+    ? actRaw.split(",").map(x => x.trim()).filter(x => x)
+    : [];
+  // 組成 CSV 格式：以逗號分隔，並用雙引號包起來
+  const activityTypeCSV = activityTypeList.length > 0
+    ? `"${activityTypeList.join(", ")}"`
+    : `""`;
+
+  // 2) 拆解「地點/景點」欄位
+  const locRaw = document.getElementById("locationSpotInput").value.trim();
+  const locationSpotList = locRaw
+    ? locRaw.split(",").map(x => x.trim()).filter(x => x)
+    : [];
+  const locationSpotCSV = locationSpotList.length > 0
+    ? `"${locationSpotList.join(", ")}"`
+    : `""`;
+
+  // 3) 組出「標籤」欄位：合併地點+活動標籤，用逗號分隔
+  const allTagsArray = [...locationSpotList, ...activityTypeList];
+  const uniqueTagsArray = [...new Set(allTagsArray)];
+  const tagsCSV = uniqueTagsArray.length > 0
+    ? `"${uniqueTagsArray.join(", ")}"`
+    : `""`;
+
+  // 組成最終 7 欄 CSV（各欄之間用逗號分隔）：
+  // 1. 產品編號, 2. 產品名稱, 3. 是否為國外產品, 4. 價格,
+  // 5. 活動類型, 6. 地點/景點, 7. 標籤
+  const csvLine = [
+    inputID,
+    inputName,
+    isForeign,
+    price,
+    activityTypeCSV,
+    locationSpotCSV,
+    tagsCSV
+  ].join(",");
+
   // 複製到剪貼簿
   navigator.clipboard.writeText(csvLine).then(() => {
     const copyMsg = document.getElementById("copyMsg");
-    copyMsg.textContent = "✅ 已複製到剪貼簿！請貼至 CSV。";
-    copyMsg.style.display = "block";
+    if (copyMsg) {
+      copyMsg.textContent = "✅ 已複製到剪貼簿！請貼回 CSV。";
+      copyMsg.style.display = "block";
+      copyMsg.style.color = "#2e7d32";
+    }
+    showMessage("CSV 行已複製到剪貼簿！", "success");
   }).catch(err => {
     console.error("複製到剪貼簿失敗：", err);
-    showMessage("📋 複製失敗，請手動複製上述文字。", "error");
+    showMessage("📋 複製失敗，請手動複製。CSV 行：" + csvLine, "error");
   });
 });
 
-// 11. 頁面載入時先讀取 JSON 和 CSV
+// ---------------------------------------------
+// 11. 清空表單按鈕
+// ---------------------------------------------
+function addClearFormButton() {
+  const clearBtn = document.getElementById("clearBtn");
+  if (clearBtn) {
+    clearBtn.addEventListener("click", () => {
+      // 清空所有輸入欄位
+      document.getElementById("productID").value = "";
+      document.getElementById("prodName").value = "";
+      document.getElementById("isForeign").checked = false;
+      document.getElementById("price").value = "";
+      document.getElementById("activityTypeInput").value = "";
+      document.getElementById("locationSpotInput").value = "";
+
+      // 隱藏結果區域
+      const resultDiv = document.getElementById("result");
+      if (resultDiv) {
+        resultDiv.style.display = "none";
+      }
+
+      // 清除訊息
+      clearMessage();
+
+      // 清除複製訊息
+      const copyMsg = document.getElementById("copyMsg");
+      if (copyMsg) {
+        copyMsg.style.display = "none";
+      }
+
+      lastExtractedName = "";
+    });
+  }
+}
+
+// ---------------------------------------------
+// 12. 初始化：載入 JSON + CSV，並把 tags_dict key 填入 <datalist id="activityList">
+// ---------------------------------------------
 window.addEventListener("load", () => {
+  // 載入地點 JSON
   loadLocationJSON();
+  // 載入現有產品 CSV
   loadProductCSV();
+
+  // 把 tags_dict 的分類名稱填入 activityList (autocomplete)
+  const actDatalist = document.getElementById("activityList");
+  if (actDatalist) {
+    actDatalist.innerHTML = "";
+    Object.keys(tags_dict).forEach(category => {
+      const option = document.createElement("option");
+      option.value = category;
+      actDatalist.appendChild(option);
+    });
+  }
+
+  // 綁定「清空表單」按鈕
+  addClearFormButton();
 });
