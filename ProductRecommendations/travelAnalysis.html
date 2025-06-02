@@ -1,0 +1,661 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>旅遊商品分析工具</title>
+    <!-- Chart.js -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.9.1/chart.min.js"></script>
+    <!-- PapaParse -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
+
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            font-family: 'Microsoft JhengHei', Arial, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 20px;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+            overflow: hidden;
+            backdrop-filter: blur(10px);
+        }
+        .header {
+            background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+        .header h1 {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+            font-weight: 300;
+        }
+        .header p {
+            font-size: 1.1em;
+            opacity: 0.9;
+        }
+        .loading {
+            text-align: center;
+            padding: 50px;
+            font-size: 1.2em;
+            color: #666;
+        }
+        .error {
+            background: #ff6b6b;
+            color: white;
+            padding: 15px;
+            border-radius: 10px;
+            margin: 20px;
+            text-align: center;
+        }
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+            padding: 30px;
+        }
+        .stat-card {
+            background: white;
+            padding: 25px;
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+            text-align: center;
+            transition: all 0.3s ease;
+            border-left: 5px solid;
+        }
+        .stat-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.15);
+        }
+        .stat-card:nth-child(1) {
+            border-left-color: #4facfe;
+        }
+        .stat-card:nth-child(2) {
+            border-left-color: #43e97b;
+        }
+        .stat-card:nth-child(3) {
+            border-left-color: #fa709a;
+        }
+        .stat-card:nth-child(4) {
+            border-left-color: #feca57;
+        }
+        .stat-number {
+            font-size: 2.5em;
+            font-weight: bold;
+            margin-bottom: 10px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+        .stat-label {
+            font-size: 1.1em;
+            color: #666;
+            font-weight: 500;
+        }
+        .charts-section {
+            padding: 30px;
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+            gap: 30px;
+        }
+        .chart-container {
+            background: white;
+            padding: 25px;
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+        }
+        .chart-title {
+            font-size: 1.3em;
+            margin-bottom: 20px;
+            color: #333;
+            font-weight: 600;
+        }
+        .search-section {
+            padding: 20px 30px;
+            background: #fafafa;
+            border-top: 1px solid #eee;
+            border-bottom: 1px solid #eee;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .search-section label {
+            font-size: 1em;
+            color: #333;
+            font-weight: 500;
+        }
+        .search-section select {
+            flex: 1;
+            padding: 8px 12px;
+            font-size: 1em;
+            border-radius: 5px;
+            border: 1px solid #ccc;
+        }
+        .product-detail {
+            padding: 20px 30px;
+            background: #fff;
+            border-bottom: 1px solid #eee;
+            font-size: 0.95em;
+            color: #444;
+        }
+        .product-detail h3 {
+            margin-bottom: 10px;
+            color: #333;
+        }
+        .product-detail p {
+            margin-bottom: 6px;
+            line-height: 1.4;
+        }
+        .products-table {
+            padding: 30px;
+        }
+        .table-container {
+            background: white;
+            border-radius: 15px;
+            overflow: hidden;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        /* 透過 colgroup 控制欄寬 */
+        colgroup col:nth-child(1) { width: 15%; }   /* 產品編號 */
+        colgroup col:nth-child(2) { width: 30%; }   /* 產品名稱 */
+        colgroup col:nth-child(3) { width: 10%; }   /* 國內/國外 */
+        colgroup col:nth-child(4) { width: 10%; }   /* 價格 */
+        colgroup col:nth-child(5) { width: 20%; }   /* 活動類型 */
+        colgroup col:nth-child(6) { width: 15%; }   /* 地點/景點 */
+        th,
+        td {
+            padding: 15px;
+            text-align: left;
+            border-bottom: 1px solid #eee;
+            vertical-align: top;
+            word-break: break-word;
+        }
+        th {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            font-weight: 600;
+            position: sticky;
+            top: 0;
+        }
+        tr:hover {
+            background-color: #f8f9ff;
+        }
+        .price {
+            font-weight: bold;
+            color: #e74c3c;
+        }
+        .international {
+            background: #2ecc71;
+            color: white;
+            padding: 4px 8px;
+            border-radius: 20px;
+            font-size: 0.8em;
+        }
+        .domestic {
+            background: #3498db;
+            color: white;
+            padding: 4px 8px;
+            border-radius: 20px;
+            font-size: 0.8em;
+        }
+        @media (max-width: 768px) {
+            .charts-section {
+                grid-template-columns: 1fr;
+            }
+            table {
+                font-size: 0.9em;
+            }
+            th,
+            td {
+                padding: 10px 8px;
+            }
+            /* 手機板重新調整欄寬（可自行再微調） */
+            colgroup col:nth-child(1) { width: 20%; }
+            colgroup col:nth-child(2) { width: 30%; }
+            colgroup col:nth-child(3) { width: 10%; }
+            colgroup col:nth-child(4) { width: 10%; }
+            colgroup col:nth-child(5) { width: 15%; }
+            colgroup col:nth-child(6) { width: 15%; }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- 頁首 -->
+        <div class="header">
+            <h1>🏖️ 旅遊商品分析工具</h1>
+        </div>
+
+        <!-- 處理中 / 錯誤 訊息 -->
+        <div id="loadingMessage" class="loading">資料載入中，請稍候...</div>
+        <div id="errorMessage" class="error" style="display: none;"></div>
+
+        <!-- 統計與圖表區塊（初始隱藏） -->
+        <div id="analysisContent" style="display: none;">
+            <!-- 統計卡片 -->
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <div class="stat-number" id="totalProducts">0</div>
+                    <div class="stat-label">總商品數</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-number" id="avgPrice">$0</div>
+                    <div class="stat-label">平均價格</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-number" id="internationalRatio">0%</div>
+                    <div class="stat-label">國外商品比例</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-number" id="uniqueTypes">0</div>
+                    <div class="stat-label">活動類型數</div>
+                </div>
+            </div>
+
+            <!-- 圖表區塊 -->
+            <div class="charts-section">
+                <div class="chart-container">
+                    <div class="chart-title">價格分布圖</div>
+                    <canvas id="priceChart"></canvas>
+                </div>
+                <div class="chart-container">
+                    <div class="chart-title">國內外商品比例</div>
+                    <canvas id="locationChart"></canvas>
+                </div>
+                <div class="chart-container">
+                    <div class="chart-title">活動類型分析</div>
+                    <canvas id="typeChart"></canvas>
+                </div>
+                <div class="chart-container">
+                    <div class="chart-title">熱門目的地</div>
+                    <canvas id="destinationChart"></canvas>
+                </div>
+            </div>
+
+            <!-- 搜尋單一產品區塊 -->
+            <div class="search-section">
+                <label for="productSelect">🔍 搜尋產品：</label>
+                <select id="productSelect">
+                    <option value="">-- 請選擇產品編號或名稱 --</option>
+                </select>
+            </div>
+            <div id="productDetail" class="product-detail" style="display: none;">
+                <h3>產品詳細資訊</h3>
+                <p id="detailProductId"><strong>產品編號：</strong><span></span></p>
+                <p id="detailProductName"><strong>產品名稱：</strong><span></span></p>
+                <p id="detailLocationType"><strong>國內/國外：</strong><span></span></p>
+                <p id="detailPrice"><strong>價格：</strong><span></span></p>
+                <p id="detailActivityType"><strong>活動類型：</strong><span></span></p>
+                <p id="detailLocations"><strong>地點/景點：</strong><span></span></p>
+            </div>
+
+            <!-- 商品明細表格（已無「標籤」欄位） -->
+            <div class="products-table">
+                <div class="table-container">
+                    <table id="productsTable">
+                        <!-- 利用 colgroup 統一設定欄寬 -->
+                        <colgroup>
+                            <col />  <!-- 產品編號 (15%) -->
+                            <col />  <!-- 產品名稱 (30%) -->
+                            <col />  <!-- 國內/國外 (10%) -->
+                            <col />  <!-- 價格 (10%) -->
+                            <col />  <!-- 活動類型 (20%) -->
+                            <col />  <!-- 地點/景點 (15%) -->
+                        </colgroup>
+                        <thead>
+                            <tr>
+                                <th>產品編號</th>
+                                <th>產品名稱</th>
+                                <th>國內/國外</th>
+                                <th>價格</th>
+                                <th>活動類型</th>
+                                <th>地點/景點</th>
+                            </tr>
+                        </thead>
+                        <tbody id="productsTableBody"></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let productsData = [];
+        let charts = {};
+
+        // 頁面載入後自動解析「產品資料.csv」
+        window.addEventListener('DOMContentLoaded', () => {
+            Papa.parse('產品資料.csv', {
+                download: true,
+                header: true,
+                skipEmptyLines: true,
+                dynamicTyping: true,
+                complete: function(results) {
+                    if (results.errors.length > 0) {
+                        const errMsg = results.errors.map(e => e.message).join(', ');
+                        showError('CSV 解析錯誤：' + errMsg);
+                        return;
+                    }
+                    try {
+                        // 依照實際欄位讀取，注意：「標籤」欄位不再存入
+                        productsData = results.data.map(row => ({
+                            productId: row['產品編號'] || '',
+                            productName: row['產品名稱'] || '',
+                            isInternational:
+                                row['是否為國外產品'] === true ||
+                                row['是否為國外產品'] === 'True' ||
+                                row['是否為國外產品'] === 'true',
+                            price: parseFloat(row['價格'] || 0),
+                            activityType: row['活動類型'] || '',
+                            locations: row['／地點景點'] || row['地點景點'] || ''
+                        }));
+
+                        if (productsData.length === 0) {
+                            showError('找不到任何有效的產品資料。');
+                            return;
+                        }
+                    } catch (err) {
+                        showError('資料處理錯誤：' + err.message);
+                        return;
+                    }
+
+                    document.getElementById('loadingMessage').style.display = 'none';
+                    document.getElementById('analysisContent').style.display = 'block';
+
+                    analyzeData();
+                    populateDropdown();
+                    populateTable();
+                },
+                error: function(err) {
+                    showError('無法載入 CSV 檔案：' + err);
+                }
+            });
+        });
+
+        function showError(message) {
+            document.getElementById('loadingMessage').style.display = 'none';
+            const errDiv = document.getElementById('errorMessage');
+            errDiv.textContent = message;
+            errDiv.style.display = 'block';
+        }
+
+        function analyzeData() {
+            const totalProducts = productsData.length;
+            const avgPrice = Math.round(
+                productsData.reduce((sum, p) => sum + (isNaN(p.price) ? 0 : p.price), 0) / totalProducts
+            );
+            const internationalCount = productsData.filter(p => p.isInternational).length;
+            const internationalRatio = Math.round((internationalCount / totalProducts) * 100);
+
+            // 計算活動類型總數（去重）
+            const allTypes = new Set();
+            productsData.forEach(p => {
+                p.activityType.split(',').forEach(type => {
+                    const t = type.trim();
+                    if (t) allTypes.add(t);
+                });
+            });
+            const uniqueTypes = allTypes.size;
+
+            document.getElementById('totalProducts').textContent = totalProducts;
+            document.getElementById('avgPrice').textContent = '$' + avgPrice.toLocaleString();
+            document.getElementById('internationalRatio').textContent = internationalRatio + '%';
+            document.getElementById('uniqueTypes').textContent = uniqueTypes;
+
+            createPriceChart();
+            createLocationChart();
+            createTypeChart();
+            createDestinationChart();
+        }
+
+        function createPriceChart() {
+            const ctx = document.getElementById('priceChart').getContext('2d');
+
+            const priceRanges = {
+                '< 20,000': 0,
+                '20,000 - 40,000': 0,
+                '40,000 - 60,000': 0,
+                '60,000 - 80,000': 0,
+                '> 80,000': 0
+            };
+            productsData.forEach(p => {
+                const price = isNaN(p.price) ? 0 : p.price;
+                if (price < 20000) priceRanges['< 20,000']++;
+                else if (price < 40000) priceRanges['20,000 - 40,000']++;
+                else if (price < 60000) priceRanges['40,000 - 60,000']++;
+                else if (price < 80000) priceRanges['60,000 - 80,000']++;
+                else priceRanges['> 80,000']++;
+            });
+
+            if (charts.priceChart) charts.priceChart.destroy();
+            charts.priceChart = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: Object.keys(priceRanges),
+                    datasets: [{
+                        label: '商品數量',
+                        data: Object.values(priceRanges),
+                        backgroundColor: [
+                            'rgba(75, 192, 192, 0.8)',
+                            'rgba(54, 162, 235, 0.8)',
+                            'rgba(255, 206, 86, 0.8)',
+                            'rgba(255, 99, 132, 0.8)',
+                            'rgba(153, 102, 255, 0.8)'
+                        ],
+                        borderColor: [
+                            'rgba(75, 192, 192, 1)',
+                            'rgba(54, 162, 235, 1)',
+                            'rgba(255, 206, 86, 1)',
+                            'rgba(255, 99, 132, 1)',
+                            'rgba(153, 102, 255, 1)'
+                        ],
+                        borderWidth: 2
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    plugins: {
+                        legend: { display: false }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            ticks: { stepSize: 1 }
+                        }
+                    }
+                }
+            });
+        }
+
+        function createLocationChart() {
+            const ctx = document.getElementById('locationChart').getContext('2d');
+
+            const internationalCount = productsData.filter(p => p.isInternational).length;
+            const domesticCount = productsData.length - internationalCount;
+
+            if (charts.locationChart) charts.locationChart.destroy();
+            charts.locationChart = new Chart(ctx, {
+                type: 'doughnut',
+                data: {
+                    labels: ['國外商品', '國內商品'],
+                    datasets: [{
+                        data: [internationalCount, domesticCount],
+                        backgroundColor: [
+                            'rgba(46, 204, 113, 0.8)',
+                            'rgba(52, 152, 219, 0.8)'
+                        ],
+                        borderColor: [
+                            'rgba(46, 204, 113, 1)',
+                            'rgba(52, 152, 219, 1)'
+                        ],
+                        borderWidth: 2
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    plugins: {
+                        legend: { position: 'bottom' }
+                    }
+                }
+            });
+        }
+
+        function createTypeChart() {
+            const ctx = document.getElementById('typeChart').getContext('2d');
+
+            const typeCount = {};
+            productsData.forEach(p => {
+                p.activityType.split(',').forEach(type => {
+                    const t = type.trim();
+                    if (!t) return;
+                    typeCount[t] = (typeCount[t] || 0) + 1;
+                });
+            });
+
+            const sortedTypes = Object.entries(typeCount)
+                .sort(([, a], [, b]) => b - a)
+                .slice(0, 6);
+
+            if (charts.typeChart) charts.typeChart.destroy();
+            charts.typeChart = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: sortedTypes.map(([type]) => type),
+                    datasets: [{
+                        label: '商品數量',
+                        data: sortedTypes.map(([, count]) => count),
+                        backgroundColor: 'rgba(250, 112, 154, 0.8)',
+                        borderColor: 'rgba(250, 112, 154, 1)',
+                        borderWidth: 2
+                    }]
+                },
+                options: {
+                    indexAxis: 'y',
+                    responsive: true,
+                    plugins: {
+                        legend: { display: false }
+                    },
+                    scales: {
+                        x: {
+                            beginAtZero: true,
+                            ticks: { stepSize: 1 }
+                        }
+                    }
+                }
+            });
+        }
+
+        function createDestinationChart() {
+            const ctx = document.getElementById('destinationChart').getContext('2d');
+
+            const locationCount = {};
+            productsData.forEach(p => {
+                p.locations.split(',').forEach(location => {
+                    const loc = location.trim();
+                    if (!loc) return;
+                    locationCount[loc] = (locationCount[loc] || 0) + 1;
+                });
+            });
+
+            const sortedLocations = Object.entries(locationCount)
+                .sort(([, a], [, b]) => b - a)
+                .slice(0, 8);
+
+            if (charts.destinationChart) charts.destinationChart.destroy();
+            charts.destinationChart = new Chart(ctx, {
+                type: 'pie',
+                data: {
+                    labels: sortedLocations.map(([loc]) => loc),
+                    datasets: [{
+                        data: sortedLocations.map(([, count]) => count),
+                        backgroundColor: [
+                            'rgba(255, 99, 132, 0.8)',
+                            'rgba(54, 162, 235, 0.8)',
+                            'rgba(255, 206, 86, 0.8)',
+                            'rgba(75, 192, 192, 0.8)',
+                            'rgba(153, 102, 255, 0.8)',
+                            'rgba(255, 159, 64, 0.8)',
+                            'rgba(199, 199, 199, 0.8)',
+                            'rgba(83, 102, 255, 0.8)'
+                        ],
+                        borderWidth: 2
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    plugins: {
+                        legend: { position: 'bottom' }
+                    }
+                }
+            });
+        }
+
+        function populateDropdown() {
+            const select = document.getElementById('productSelect');
+            select.innerHTML = '<option value="">-- 請選擇產品編號或名稱 --</option>';
+
+            productsData.forEach((product, idx) => {
+                const option = document.createElement('option');
+                option.value = idx;
+                option.textContent = `${product.productId} － ${product.productName}`;
+                select.appendChild(option);
+            });
+
+            select.addEventListener('change', () => {
+                const selectedIndex = select.value;
+                if (selectedIndex === '') {
+                    document.getElementById('productDetail').style.display = 'none';
+                    return;
+                }
+                const prod = productsData[Number(selectedIndex)];
+                showProductDetail(prod);
+            });
+        }
+
+        function showProductDetail(prod) {
+            document.getElementById('productDetail').style.display = 'block';
+            document.querySelector('#detailProductId span').textContent = prod.productId;
+            document.querySelector('#detailProductName span').textContent = prod.productName;
+            document.querySelector('#detailLocationType span').innerHTML = prod.isInternational
+                ? '<span class="international">國外</span>'
+                : '<span class="domestic">國內</span>';
+            document.querySelector('#detailPrice span').textContent = '$' + (isNaN(prod.price) ? 0 : prod.price.toLocaleString());
+            document.querySelector('#detailActivityType span').textContent = prod.activityType;
+            document.querySelector('#detailLocations span').textContent = prod.locations;
+        }
+
+        function populateTable() {
+            const tbody = document.getElementById('productsTableBody');
+            tbody.innerHTML = '';
+
+            productsData.forEach(product => {
+                const row = tbody.insertRow();
+                row.insertCell(0).textContent = product.productId;
+                row.insertCell(1).textContent = product.productName;
+                row.insertCell(2).innerHTML = product.isInternational
+                    ? '<span class="international">國外</span>'
+                    : '<span class="domestic">國內</span>';
+                row.insertCell(3).innerHTML = `<span class="price">$${isNaN(product.price) ? 0 : product.price.toLocaleString()}</span>`;
+                row.insertCell(4).textContent = product.activityType;
+                row.insertCell(5).textContent = product.locations;
+            });
+        }
+    </script>
+</body>
+</html>
